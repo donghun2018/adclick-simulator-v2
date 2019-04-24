@@ -1,2 +1,80 @@
 # adclick-simulator-v2
 Second generation of adclick simulator
+
+## Get the Newest Code
+
+Downloadable zip and tar.gz files are [here](https://github.com/donghun2018/adclick-simulator-v2/archive/master.zip). Also, you may clone this repository.
+
+## Getting Started
+
+These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
+See deployment for notes on how to deploy the project on a live system.
+
+### Prerequisites
+
+This software was tested with Python 3.6 running on Windows 10 and Ubuntu 16.04.
+
+#### Python
+
+Anaconda is an easy way to get a working python.
+Get it [here](https://www.anaconda.com/download/).
+
+This simulator is tested on a 64-bit python 3.6.8 as follows:
+```
+Python 3.6.8 |Anaconda, Inc.| (default, Feb 21 2019, 18:30:04) [MSC v.1916 64 bit (AMD64)] on win32
+Type "help", "copyright", "credits" or "license" for more information.
+>>>
+```
+
+#### Packages
+
+The packages required by the simulator are:
+
+- numpy: used for pseudorandom number generator and many useful functions
+- pandas: for dataframe and series manipulation
+
+You may get these using conda
+
+```
+$ conda install numpy pandas
+```
+
+or using pip
+
+```
+$ pip install numpy pandas
+```
+
+### Installing
+
+Get the source codes and try running
+
+```
+$ python test_sample_policies.py
+```
+
+This should output a lot of screen outputs, which is a running trace of the simulator with three policies over 24 time steps (equivalent to one simulated day)
+
+### Other documents
+
+- An introductory slideshow PDF file is available [here](https://github.com/donghun2018/adclick-simulator-v2/blob/release/20190424/documentation/20190415_ORF_418_adclick_game_intro.pdf)
+
+## Contributors
+
+### Roomsage Inc.
+
+- Piotr Zioło (Lead)
+- Jedrzej Kardach
+
+### Castle Lab, Princeton Univ.
+
+- Donghun Lee (Lead) 
+- Andy Su
+
+## Acknowledgments
+
+- We appreciate Roomsage Inc. for its generous effort in development and support of this simulator.
+
+## License
+
+See the [LICENSE](https://github.com/donghun2018/adclick-simulator-v2/blob/master/LICENSE) file for details.
