@@ -3,7 +3,7 @@ Second generation of adclick simulator
 
 ## Get the Newest Code
 
-Downloadable zip and tar.gz files are [here](https://github.com/donghun2018/adclick-simulator-v2/archive/master.zip). Also, you may clone this repository.
+A downloadable zip file is [here](https://github.com/donghun2018/adclick-simulator-v2/archive/master.zip). Also, you may clone this repository.
 
 ## Getting Started
 
@@ -58,7 +58,9 @@ This should output a lot of screen outputs, which is a running trace of the simu
 ### Other documents
 
 - An introductory slideshow PDF file is available [here](https://github.com/donghun2018/adclick-simulator-v2/blob/release/20190424/documentation/20190415_ORF_418_adclick_game_intro.pdf)
-
+- A "how-to" reference in coding a bidding policy is available [here](https://docs.google.com/document/d/1JJHlV3ORQG131_45ZCvQRToy4SdcIsElmKQGKohdM1M/edit?usp=sharing)
+    - you may leave questions by commenting on this document 
+    
 ## Contributors
 
 ### Roomsage Inc.
