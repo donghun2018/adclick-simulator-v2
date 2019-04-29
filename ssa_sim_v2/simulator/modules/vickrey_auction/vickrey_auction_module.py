@@ -64,7 +64,7 @@ class VickreyAuctionModule(SimulatorModule):
             # For each action create a tuple (action_index, action_effective_bid, random_number)
             # the last term will be used for breaking ties and then will be removed for clean output clean_sorted
             for action_index in range(len(actions)):
-                unsorted_auction.append((action_index, actions_effective_bids[action_index], np.random.uniform(0.0, 1000.0)))
+                unsorted_auction.append((action_index, actions_effective_bids[action_index], self.rng.uniform(0.0, 1000.0)))
             sorted_auction = sorted(unsorted_auction, key=lambda x: (x[1], x[2]), reverse=True)
             clean_sorted = []
             for place in sorted_auction:

@@ -9,11 +9,10 @@ if __name__ == "__main__":
 
 # Load libraries ---------------------------------------------
 
-from typing import Union, List, Dict
-
-from random import choice
+from typing import List, Dict
 
 from copy import deepcopy
+from collections import defaultdict
 
 import numpy as np
 import pandas as pd
@@ -42,13 +41,14 @@ class CompetitiveDateHowSimulator(object):
     :ivar str date_from: Simulation final date.
     :ivar float income_share: Optimization type: 1.0 - hotel, 0.x - agency.
     :ivar StateSet.State state: Current time-step.
+    :ivar bool print: Should simulator output be printed.
     :ivar int s_ix: State index.
     :ivar dict internals: Internal variable for storing historical
         internal values of the simulator.
     """
 
     def __init__(self, state_set, action_set, attr_set, modules,
-                 date_from="", date_to="", income_share=1.0):
+                 date_from="", date_to="", income_share=1.0, print_trace=False):
         """
         :param StateSet state_set: State set.
         :param ActionSet action_set: Action set.
@@ -58,6 +58,7 @@ class CompetitiveDateHowSimulator(object):
         :param str date_from: Simulation starting date.
         :param str date_from: Simulation final date.
         :param float income_share: Optimization type: 1.0 - hotel, 0.x - agency.
+        :param bool print_trace: Should simulator output be printed.
         """
         self.state_set = state_set
         self.action_set = action_set
@@ -69,6 +70,29 @@ class CompetitiveDateHowSimulator(object):
         self.internals = dict()  # type: dict
 
         self.state = self.state_set.make_state({"date": date_from, "how": 0})
+
+        self.DAILY_BUDGET_FOR_POLICY = 10000.0     # TODO promote this to init or spec
+        self.budgets = defaultdict(lambda: self.DAILY_BUDGET_FOR_POLICY)
+
+        self.print_trace = print_trace
+
+    def _enforce_budgets(self, submitted_actions):
+        if self.state.values.how % 24 == 0:
+            for k in self.budgets.keys():
+                self.budgets[k] += self.DAILY_BUDGET_FOR_POLICY
+        for ix, a in enumerate(submitted_actions):
+            if self.budgets[ix] < 0.0:
+                a.bid = 0
+        return
+
+    def _update_budgets(self, results):
+        for ix, result in enumerate(results):
+            cost = result['info']['cost']
+            self.budgets[ix] -= cost
+        return
+
+    def _get_budget(self, pol_ix):
+        return self.budgets[pol_ix]
 
     def _next_state(self, state):
         """
@@ -134,14 +158,21 @@ class CompetitiveDateHowSimulator(object):
         :rtype: List[dict]
         """
 
-        n_pols = len(actions)
+        n_pols = len(actions)   # TODO action list should be initialized before OR change to {name_of_policy: actions} format
 
         # Fix all actions
         effective_actions = [self.action_set.validify_action(action) for action in actions]
+
+        # budget check for policies
+        self._enforce_budgets(effective_actions)    # modifies effective_actions
+        if self.print_trace:
+            print("budgets={}".format(self.budgets))
+
         numerical_actions = [self._prepare_numerical_action(action) for action in effective_actions]
 
-        for a in numerical_actions:
-            print(a)
+        if self.print_trace:
+            for a in numerical_actions:
+                print(a)
 
         state = self.state.values
 
@@ -151,7 +182,8 @@ class CompetitiveDateHowSimulator(object):
         auction_results = self.modules["vickrey_auction"].get_auction_results(
             actions=numerical_actions, date=state.date, how=state.how)
 
-        print(auction_results)
+        if self.print_trace:
+            print(auction_results)
 
         # Prepare an empty response structure
 
@@ -185,47 +217,72 @@ class CompetitiveDateHowSimulator(object):
 
         for attr, attr_n_a in attr_auctions.items():
 
-            print("attr={}".format(attr))
+            if self.print_trace:
+                print("attr={}".format(attr))
+
+            if self.print_trace:
+                print("n_a={}".format(attr_n_a))
 
             attr_auction_results = auction_results[attr]
 
-            print("attr auction results={}".format(attr_auction_results))
+            if self.print_trace:
+                print("attr auction results={}".format(attr_auction_results))
 
             pos_to_pols_idxs = np.array([attr_auction_results[i][0] for i in range(n_pols)])
 
             cp = self.modules["competitive_click_probability"].get_cp(
                 auction_results=auction_results, date=state.date, how=state.how, attr=attr)
 
-            print("cp={}".format(cp))
+            if self.print_trace:
+                print("cp={}".format(cp))
+
+            # out-of-budget policies will not get any clicks (TODO: remove this hack)
+            for pos, pol_idx in enumerate(pos_to_pols_idxs):
+                if self._get_budget(pol_idx) < 0.0:
+                    cp[pos] = 0.0   # no clicks for budgetless policies
 
             n_c = self.modules["competitive_clicks"].sample(
                 n=attr_n_a, cp=cp, date=state.date, how=state.how, attr=attr)
 
-            print("n_c={}".format(n_c))
+            if self.print_trace:
+                print("n_c={}".format(n_c))
 
             real_cvr = np.array([self.modules["conversion_rate"].get_cvr(
                 bid=attr_auction_results[i][1], date=state.date, how=state.how, attr=attr)
                 for i in range(n_pols)])
-            print("real_cvr={}".format(real_cvr))
+
+            if self.print_trace:
+                print("real_cvr={}".format(real_cvr))
+
             n_v = np.array([self.modules["conversions"].sample(
                 num_clicks=n_c[i], cvr=real_cvr[i], date=state.date, how=state.how, attr=attr)
                 for i in range(n_pols)])
-            print("n_v={}".format(n_v))
+
+            if self.print_trace:
+                print("n_v={}".format(n_v))
 
             revenue = np.array([self.modules["revenue"].get_revenue(
                 num_conversions=n_v[i], date=state.date, how=state.how, attr=attr)
                 for i in range(n_pols)])
-            print("revenue={}".format(revenue))
+
+            if self.print_trace:
+                print("revenue={}".format(revenue))
 
             cpc = self.modules["competitive_cpc"].get_cpc(
                 auction_results=auction_results, date=state.date, how=state.how, attr=attr)
-            print("cpc={}".format(cpc))
+
+            if self.print_trace:
+                print("cpc={}".format(cpc))
 
             cost = cpc * n_c
-            print("cost={}".format(cost))
+
+            if self.print_trace:
+                print("cost={}".format(cost))
 
             profit_is = revenue * self.income_share - cost
-            print("profit_is={}".format(profit_is))
+
+            if self.print_trace:
+                print("profit_is={}".format(profit_is))
 
             reward = profit_is
 
@@ -240,6 +297,7 @@ class CompetitiveDateHowSimulator(object):
                     "revenue": revenue[pos],
                     "cost": cost[pos]}
                 results[pol_idx]["info"] = add_dicts(results[pol_idx]["info"], info)
+                results[pol_idx]["info"]["budget"] = self._get_budget(pol_idx)  # TODO: tidy up init into "info"
                 attr_cat = self.attr_set.tuples_to_attr(attr)
                 for attr_name in attr_names:
                     results[pol_idx]["attr_info"][attr_name][getattr(attr_cat, attr_name)] \
@@ -262,6 +320,10 @@ class CompetitiveDateHowSimulator(object):
             for attr_name in attr_names:
                 for attr_value in self.attr_set.attr_sets[attr_name]:
                     self._calculate_derivative_fields(results[pol_idx]["attr_info"][attr_name][attr_value])
+
+        # budget updating
+
+        self._update_budgets(results)
 
         # TODO: Properly format simulator history
         # # Hist keeping internally

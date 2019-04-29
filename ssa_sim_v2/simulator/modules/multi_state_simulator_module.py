@@ -54,7 +54,7 @@ class MultiStateSimulatorModule(object):
 
         seed_min = 100000
         seed_max = 999999
-        seeds = np.random.RandomState(seed).randint(low=seed_min, high=seed_max, size=len(self.priors))
+        seeds = self.rng.randint(low=seed_min, high=seed_max, size=len(self.priors))
 
         base_df = priors.copy()
         base_df.loc[:, "base_class"] = base_classes["base_class"]
