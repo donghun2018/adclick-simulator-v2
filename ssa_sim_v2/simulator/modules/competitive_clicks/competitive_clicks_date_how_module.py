@@ -1,0 +1,175 @@
+# Fix paths for imports to work in unit tests ----------------
+
+if __name__ == "__main__":
+    
+    from _fix_paths import fix_paths
+    fix_paths()
+
+# ------------------------------------------------------------
+
+# Load libraries ---------------------------------------------
+
+from typing import Dict, List
+
+import numpy as np
+import pandas as pd
+
+from ssa_sim_v2.simulator.modules.multi_state_simulator_module import MultiStateSimulatorModule
+from ssa_sim_v2.simulator.modules.competitive_clicks.competitive_clicks_base_module import CompetitiveClicksModule
+
+# ------------------------------------------------------------
+
+# TODO: Check docstrings
+# TODO: Fix the unit test
+# TODO: Make sure that there are no warnings given by PyCharm left
+# TODO: Delete these TODOs
+
+    
+class CompetitiveClicksDateHoWModule(MultiStateSimulatorModule):
+    """
+    Module for clicks using a model specified during initialization.
+    For every date and hour of week in a specified range a separate model is used.
+    
+    :ivar pd.DataFrame priors: DataFrame with three columns: date, hour_of_week,
+            prior. The last column defines priors (in the form of dictionaries)
+            for given dates and hours of week.
+    :ivar pd.DataFrame base_classes: DataFrame with three columns: date, hour_of_week,
+            base_class. The last column defines priors (in the form of dictionaries)
+            for given dates and hours of week.
+    :ivar int seed: Seed for the random number generator.
+    :ivar Dict[str, ClickProbabilityModule]: Dictionary of click probability models for every valid pair
+        of date and hour of week.
+    """
+
+    def __init__(self, priors=None, base_classes=None, seed=9):
+        """
+        :param pd.DataFrame priors: DataFrame with three columns: date, hour_of_week,
+            prior. The last column defines priors (in the form of dictionaries)
+            for given dates and hours of week.
+        :param pd.DataFrame base_classes: DataFrame with three columns: date, hour_of_week,
+            base_class. The last column defines priors (in the form of dictionaries)
+            for given dates and hours of week.
+        :param int seed: Seed for the random number generator.
+        """
+
+        self.models = {}  # type: Dict[str, CompetitiveClicksModule]
+
+        super().__init__(priors, base_classes, seed)
+
+    def sample(self, n, cp, date="2015-01-05", how=0, attr=(0,)):
+        """
+        Returns an array of numbers of clicks using an underlying model
+        for the given date and hour of week and attributes. i-th array element
+        corresponds to the i-th ad position. Every positions gets the same
+        number of auctions.
+        
+        :param int n: Number of auctions.
+        :param Union[np.array, list] cp: Array of click probabilities corresponding
+            to each ad position.
+        :param str date: Date string in the format yyyy-mm-dd.
+        :param int how: Integer value for the hour of week in the range 0-167.
+        :param tuple attr: Attributes.
+
+        :return: Array of number of clicks for every ad position.
+        :rtype: List[int]
+        """
+        
+        return self.models["{}.{}".format(date, how)].sample(n, cp, attr)
+
+
+# ==============================================================================
+# Unit tests
+# ==============================================================================
+
+if __name__ == "__main__":
+    
+    import unittest
+            
+            
+    class TestClickProbabilityDateHoW(unittest.TestCase):
+        def test_sanity(self):
+            print("ClickProbabilityDateHoWModule class sample run -------------")
+
+            import math
+            #ClickProbabilityDateHoWModule
+
+            from ssa_sim_v2.simulator.modules.click_probability.click_probability_base_module import ClickProbabilityFunctionModule
+            from ssa_sim_v2.simulator.modules.click_probability.click_probability_base_module import ClickProbabilityLogisticLogS1Module
+            from ssa_sim_v2.simulator.modules.click_probability.click_probability_base_module import ClickProbabilityLogisticLogShiftModule
+            from ssa_sim_v2.simulator.modules.click_probability.click_probability_date_how_module import ClickProbabilityDateHoWModule
+            date_range = pd.DataFrame(pd.date_range("2017-01-05", "2017-01-08"), columns=["date"])
+            date_range["key"] = 1
+            hours = pd.DataFrame(np.array(range(24)), columns=["hour_of_day"])
+            hours["key"] = 1
+            priors = pd.merge(date_range, hours, how="left", on="key")
+            priors["hour_of_week"] = priors["date"].dt.dayofweek * 24 + priors["hour_of_day"]
+            priors.loc[:, "date"] = priors["date"].dt.strftime("%Y-%m-%d")
+            priors = priors[["date", "hour_of_week"]]
+
+            base_classes = priors.copy()
+
+            priors.loc[:, "prior"] = None
+            # print(priors)
+            base_classes.loc[:, "base_class"] = None
+
+            i = 0
+
+            for index, row in priors.iterrows():
+                if math.floor(float(i) / 8) == 0:
+                    Params = ClickProbabilityFunctionModule.Params
+                    priors.loc[index, "prior"] = [{
+                        (0, 0): Params(bid=1.0, p=lambda b: min(1.0, max(0.0, b / 10))),
+                        (0, 1): Params(bid=1.0, p=lambda b: min(0.5, max(0.0, b / 10))),
+                        (1, 0): Params(bid=1.0, p=lambda b: min(1.0, max(0.0, b / 10)) / 2),
+                        (1, 1): Params(bid=1.0, p=lambda b: min(0.5, max(0.0, b / 10)) / 2)
+                    }]
+
+                    base_classes.loc[index, "base_class"] = ClickProbabilityFunctionModule
+
+                elif math.floor(float(i) / 8) == 1:
+                    Params = ClickProbabilityLogisticLogS1Module.Params
+                    priors.loc[index, "prior"] = [{
+                        (0, 0): Params(bid=5.0, p=0.1),
+                        (0, 1): Params(bid=5.0, p=0.3),
+                        (1, 0): Params(bid=5.0, p=0.5),
+                        (1, 1): Params(bid=5.0, p=0.7)
+                    }]
+
+                    base_classes.loc[index, "base_class"] = ClickProbabilityLogisticLogS1Module
+
+                elif math.floor(float(i) / 8) == 2:
+                    Params = ClickProbabilityLogisticLogShiftModule.Params
+                    priors.loc[index, "prior"] = [{
+                        (0, 0): Params(bid=[], p=[], theta_0=1.0, theta_1=0.5, max_cp=0.5, tau=3.0, fit_type="lr"),
+                        (0, 1): Params(bid=[], p=[], theta_0=1.0, theta_1=0.5, max_cp=0.5, tau=6.0, fit_type="lr"),
+                        (1, 0): Params(bid=[], p=[], theta_0=1.0, theta_1=0.5, max_cp=0.5, tau=9.0, fit_type="lr"),
+                        (1, 1): Params(bid=[], p=[], theta_0=1.0, theta_1=0.5, max_cp=0.5, tau=12.0, fit_type="lr")
+                    }]
+
+                    base_classes.loc[index, "base_class"] = ClickProbabilityLogisticLogShiftModule
+
+                i = (i + 1) % 24
+
+            click_prob_model = ClickProbabilityDateHoWModule(priors, base_classes, seed=9)
+            #click_prob_model = CompetitiveClicksDateHoWModule(priors, base_classes, seed=9)
+
+            attributes = [(0, 0), (0, 1), (1, 0), (1, 1)]
+            bids = np.linspace(1.0, 20.0, 8)
+            t = 0
+
+            for attr in attributes:
+                while t < len(priors):
+                    bid = bids[t % 8]
+                    cp = click_prob_model.get_cp(bid, priors["date"][t], priors["hour_of_week"][t], attr)
+                    print("date={} how={} attr={} bid={} cp={}".format(priors["date"][t], priors["hour_of_week"][t], attr, bid, cp))
+                    t += 1
+                t = 0
+
+            self.assertTrue(True)
+            
+            print("")
+
+
+    suite = unittest.TestSuite()
+    suite.addTest(unittest.makeSuite(TestClickProbabilityDateHoW))
+    unittest.TextTestRunner().run(suite)
