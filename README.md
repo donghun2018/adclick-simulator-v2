@@ -10,15 +10,14 @@ Howto
 - run competition.py to test run a competition
 - tweak settings.spec to change the settings (e.g. policy mixes or seeds)
 
-Changes 
+Highlights
 
 - daily budgets are enforced
     - see ["budget"] entry in the data given to policies for the current remaining budget
     - when a policy is over the daily budget, its bids will become ineffective (set to 0)
     - at the beginning of every day, the budget will be replenished
-- small auction fee is added in each cost-per-click
-    - Google does this :D    
-    
+- 40 location attributes are provided, along with 3 gender attributes and 7 age attributes.
+- small auction fee is added in each cost-per-click    
 
 ## Get the Newest Code
 
