@@ -1,6 +1,25 @@
 # adclick-simulator-v2
 Second generation of adclick simulator
 
+## Updates
+
+### 2019.04.29
+
+Howto
+
+- run competition.py to test run a competition
+- tweak settings.spec to change the settings (e.g. policy mixes or seeds)
+
+Changes 
+
+- daily budgets are enforced
+    - see ["budget"] entry in the data given to policies for the current remaining budget
+    - when a policy is over the daily budget, its bids will become ineffective (set to 0)
+    - at the beginning of every day, the budget will be replenished
+- small auction fee is added in each cost-per-click
+    - Google does this :D    
+    
+
 ## Get the Newest Code
 
 A downloadable zip file is [here](https://github.com/donghun2018/adclick-simulator-v2/archive/master.zip). Also, you may clone this repository.
