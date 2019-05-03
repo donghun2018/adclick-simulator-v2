@@ -3,6 +3,11 @@ Second generation of adclick simulator
 
 ## Updates
 
+### 2019.05.03
+
+Thanks for anonymous feedback on sample policies. 
+Now sample KG policy is available as [policy_kg.py](https://github.com/donghun2018/adclick-simulator-v2/blob/master/policy_kg.py)
+
 ### 2019.04.29
 
 Howto
